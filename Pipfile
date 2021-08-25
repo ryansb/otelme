@@ -1,0 +1,20 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+#otelme = {path = ".", extras = ["testing"], version = "*", editable = true}
+opentelemetry-distro = {version = "*", extras = ["otlp"]}
+opentelemetry-instrumentation = "*"
+pytest = "*"
+pytest-cov = "*"
+pytest-html = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.9"
+
+[pipenv]
+allow_prereleases = true
