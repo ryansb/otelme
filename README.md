@@ -2,6 +2,7 @@
 
 A low-friction OpenTelemetry wrapper for Python apps. It comes with sugar over basic spanning and the `tell` magic receiver.
 
+## Usage
 
 Use context managers or decorators to automatically create scoped spans:
 
@@ -39,3 +40,11 @@ telme.tell('explosion') * {'bang': 'loud', 'flame': 'big'}
 ```
 
 Inspired by [pipe](https://github.com/JulienPalard/Pipe), [q](https://github.com/zestyping/q), and the `rollup_field` support in [Honeycomb's beeline](https://docs.honeycomb.io/getting-data-in/python/beeline/).
+
+## Contributing
+
+All help is welcome, especially help understanding how `otelme` is used and what other use cases we can help with. Not all pull requests will be accepted, before opening a PR with a feature please open an issue to discuss it to avoid doing work that can't be upstreamed.
+
+## License
+
+`otelme` is available under the MIT license, see `LICENSE` for details.

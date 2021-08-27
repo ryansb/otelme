@@ -34,7 +34,7 @@ from typing import Callable, Mapping, Union
 
 import opentelemetry.trace
 
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 
 
 class OTelAbbreviator:
