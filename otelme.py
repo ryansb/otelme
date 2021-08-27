@@ -1,10 +1,9 @@
 """otelme pronounced "Oh, tell me"
 
-otelme is a Pythonic way to use OpenTelemetry in your Python app. It comes with
-sugar over basic spanning, a zero-conf output for STDERR, and the `tell` magick
-receiver.
+otelme is a a low-friction OpenTelemetry wrapper for Python apps. It comes with
+sugar over basic spanning and the `tell` magic receiver.
 
-Try our handy context-limited tracing and events
+Use context managers or decorators to automatically create scoped spans:
 
 with telme.tell('update_user_record'):
     telme.tell('a') | 'b'
@@ -26,10 +25,6 @@ new_count = telme.tell('newcount') + 1
 
 # Add an event to the current span/trace
 telme.tell('boom') * {'bang': 'loud'}
-
-Inspired by:
-- [pipe](https://github.com/JulienPalard/Pipe)
-- [q](https://github.com/zestyping/q)
 """
 import functools
 from collections import OrderedDict
