@@ -5,8 +5,8 @@ name = "pypi"
 
 [packages]
 #otelme = {path = ".", extras = ["testing"], version = "*", editable = true}
-opentelemetry-distro = {version = "*", extras = ["otlp"]}
 opentelemetry-instrumentation = "*"
+opentelemetry-sdk = "*"
 pytest = "*"
 pytest-cov = "*"
 pytest-html = "*"
