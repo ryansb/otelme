@@ -27,17 +27,44 @@ new_count = telme.tell('newcount') + 1
 telme.tell('boom') * {'bang': 'loud'}
 """
 import functools
+import json
 from collections import OrderedDict
 from collections.abc import MutableMapping
 from threading import RLock
-from typing import Callable, Mapping, Union
+from typing import Any, Callable, Dict, Mapping, Union
 
 import opentelemetry.trace
 
 __version__ = "0.0.3"
 
 
-class OTelAbbreviator:
+class OTelTerseEvent:
+    __slots__ = ["_name"]
+
+    def __init__(self, name):
+        self._name = name
+
+    def __mul__(self, arguments: Mapping):
+        """Use the * operator to "splat" a dictionary into a new event and its attributes
+
+        >>> OTelTerseSpan('user.signup') * {"userId": "123", "userEmail": "pythonista@test.com"}
+        {"userId": "123", "userEmail": "pythonista@test.com"}
+        """
+        if not isinstance(arguments, Mapping):
+            raise TypeError(f"dict or other mapping type required for event splatting, got {type(arguments)}")
+        opentelemetry.trace.get_current_span().add_event(self._name, attributes=arguments)
+        return arguments
+
+    def __rmul__(self, arguments: Mapping):
+        """Reversed order support for the splat operator
+
+        >>> {"userId": "123", "userEmail": "pythonista@test.com"} * OTelTerseEvent('user.signup')
+        {"userId": "123", "userEmail": "pythonista@test.com"}
+        """
+        return self.__mul__(arguments)
+
+
+class OTelTerseSpan:
     """
     matmul is the highest precedence operator that I think looks nice.
 
@@ -64,7 +91,7 @@ class OTelAbbreviator:
     def __matmul__(self, arg):
         """Tightly bind to a specific value then pass that value through
 
-        >>> OTelAbbreviator('four') @ 4 + 2 # records attr four=4
+        >>> OTelTerseSpan('four') @ 4 + 2 # records attr four=4
         6
         """
         opentelemetry.trace.get_current_span().set_attribute(self._name, arg)
@@ -73,7 +100,7 @@ class OTelAbbreviator:
     def __or__(self, arg):
         """Loosely bind to an expression then pass that value through
 
-        >>> OTelAbbreviator('six') | 4 + 2 # records attr six=6
+        >>> OTelTerseSpan('six') | 4 + 2 # records attr six=6
         6
         """
         return self.__matmul__(arg)
@@ -81,29 +108,44 @@ class OTelAbbreviator:
     def __ror__(self, arg):
         """Loosely bind to an expression then pass that value through
 
-        >>> my_db.get('thing') | OTelAbbreviator('thing_value')
+        >>> my_db.get('thing') | OTelTerseSpan('thing_value')
         6
         """
         return self.__matmul__(arg)
 
-    def __mul__(self, arguments: Mapping):
-        """Use the * operator to "splat" a dictionary into a new event and its attributes
+    def __mul__(self, arguments: Mapping) -> Dict[str, Any]:
+        """Use the * operator to "splat" a dictionary into a span as JSON
 
-        >>> OTelAbbreviator('user.signup') * {"userId": "123", "userEmail": "pythonista@rsb.io"}
-        {"userId": "123", "userEmail": "pythonista@rsb.io"}
+        >>> OTelTerseSpan('user_info') * {"userId": "123", "userEmail": "pythonista@test.com"}
+        {"userId": "123", "userEmail": "pythonista@test.com"}
         """
-        opentelemetry.trace.get_current_span().add_event(self._name, attributes=arguments)
+        opentelemetry.trace.get_current_span().set_attribute(self._name, value=json.dumps(arguments, default=str))
         return arguments
 
-    def __rmul__(self, arguments: Mapping):
+    def __rmul__(self, arguments: Mapping) -> Dict[str, Any]:
         """Inverse of the splat operator"""
         return self.__mul__(arguments)
 
-    def __add__(self, value):
-        """Support use of `OTelAbbreviator('users.import.count') + 1` to increment a couner and return the new count"""
+    def __pow__(self, arguments: Mapping) -> Dict[str, Any]:
+        """Use ** to hoist a dictionary's keys into the current span with a dot namespace.
+
+        Exponentiation, also called `__pow__` or double-splat will join the
+        given prefix with a `.` to each dict key, then set as an attribute on
+        the span.
+
+        >>> OTelTerseSpan('user') ** {"id": "123", "email": "pythonista@test.com"}
+        {"user.id": "123", "user.email": "pythonista@test.com"}
+        """
+        opentelemetry.trace.get_current_span().set_attributes(
+            attributes=(hoisted := {f"{self._name}.{k}": v for k, v in arguments.items()})
+        )
+        return hoisted
+
+    def __add__(self, value) -> Union[int, float]:
+        """Support use of `OTelTerseSpan('users.import.count') + 1` to increment a couner and return the new count"""
         return _count(self._name, value)
 
-    def __sub__(self, value):
+    def __sub__(self, value) -> Union[int, float]:
         """Inverse of __add__"""
         return _count(self._name, -value)
 
@@ -131,14 +173,18 @@ class OTelAbbreviator:
             raise exc_value
 
 
-def tell(name: Union[str, Callable], exception_transparent: bool = True) -> OTelAbbreviator:
+def notify(name: str) -> OTelTerseEvent:
+    return OTelTerseEvent(name)
+
+
+def tell(name: Union[str, Callable], exception_transparent: bool = True) -> OTelTerseSpan:
     if isinstance(name, str):
-        return OTelAbbreviator(name, exception_transparent=exception_transparent)
+        return OTelTerseSpan(name, exception_transparent=exception_transparent)
     elif hasattr(name, "__call__"):
 
         @functools.wraps(name)
         def wrapper(*args, **kwargs):
-            with OTelAbbreviator(name=name.__name__, exception_transparent=exception_transparent):
+            with OTelTerseSpan(name=name.__name__, exception_transparent=exception_transparent):
                 return name(*args, **kwargs)
 
         return wrapper

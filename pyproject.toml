@@ -22,10 +22,14 @@ test = [
     "pytest-html",
 ]
 
+[project.urls]
+Source = "https://github.com/ryansb/otelme"
+
 [tool.pytest.ini_options]
 norecursedirs = ".venv .git"
 testpaths = "test_otelme.py"
 addopts = "--cov=otelme --cov-report=html --html=./htmlcov/tests.html --strict-config --strict-markers"
+
 [tool.black]
 line-length = 120
 target-version = ['py39']

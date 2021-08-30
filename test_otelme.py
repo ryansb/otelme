@@ -3,7 +3,7 @@ import opentelemetry.trace
 import pytest
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
-from otelme import _RecentlyUsedContainer, tell
+from otelme import _RecentlyUsedContainer, notify, tell
 
 local_trace = opentelemetry.sdk.trace.TracerProvider()
 local_trace.add_span_processor(opentelemetry.sdk.trace.export.SimpleSpanProcessor(mem_export := InMemorySpanExporter()))
@@ -76,15 +76,54 @@ def test_counts(record):
     assert span.attributes["neg"] == -1
 
 
-def test_splat_operator(record):
+def test_tell_splat_operator(record):
     with tell("spatter"):
         tell("user.signup") * {"userId": "123", "userEmail": "snek@python.org"}
     span = record.get_finished_spans()[0]
     assert span.name == "spatter"
+    assert len(span.attributes) == 1
+    assert span.attributes["user.signup"] == '{"userId": "123", "userEmail": "snek@python.org"}'
+
+
+def test_tell_rsplat_operator(record):
+    with tell("spatter"):
+        {"userId": "123", "userEmail": "snek@python.org"} * tell("user.signup")
+    span = record.get_finished_spans()[0]
+    assert span.name == "spatter"
+    assert len(span.attributes) == 1
+    assert span.attributes["user.signup"] == '{"userId": "123", "userEmail": "snek@python.org"}'
+
+
+def test_notify_splat_operator(record):
+    with tell("spatter"):
+        notify("user.signup") * {"userId": "123", "userEmail": "snek@python.org"}
+    span = record.get_finished_spans()[0]
     event = span.events[0]
-    assert span.attributes == {}
+    assert event.name == "user.signup"
+    assert len(event.attributes) == 2
     assert event.attributes["userId"] == "123"
     assert event.attributes["userEmail"] == "snek@python.org"
+
+
+def test_notify_rsplat_operator(record):
+    with tell("spatter"):
+        {"userId": "123", "userEmail": "snek@python.org"} * notify("user.signup")
+    span = record.get_finished_spans()[0]
+    event = span.events[0]
+    assert event.name == "user.signup"
+    assert len(event.attributes) == 2
+    assert event.attributes["userId"] == "123"
+    assert event.attributes["userEmail"] == "snek@python.org"
+
+
+def test_tell_double_splat_operator(record):
+    with tell("spatter"):
+        tell("user.signup") ** {"userId": "123", "userEmail": "snek@python.org"}
+    span = record.get_finished_spans()[0]
+    assert span.name == "spatter"
+    assert len(span.attributes) == 2
+    assert span.attributes["user.signup.userId"] == "123"
+    assert span.attributes["user.signup.userEmail"] == "snek@python.org"
 
 
 def test_exc_reraise(record):
