@@ -33,10 +33,25 @@ telme.tell('newcount') + count
 new_count = telme.tell('newcount') + 1
 ```
 
-Use a splat (`*`) operator to explode a dict into an event on the current trace
+Use a splat (`*`) operator to add a whole dict a JSON attribute on the current trace
 
 ```python
 telme.tell('explosion') * {'bang': 'loud', 'flame': 'big'}
+# adds span attr: {'explosion': '{"bang": "loud", "flame": "big"}'
+```
+
+Use double-splat (`**`) operator to hoist a dict by its keys on the current trace
+
+```python
+telme.tell('explosion') ** {'bang': 'loud', 'flame': 'big'}
+# adds span attrs: {'explosion.bang': 'loud', 'explosion.flame': 'big'}
+```
+
+Use `notify` with the splat (`*`) operator to add a dict as an event on the current trace
+
+```python
+telme.notify('explosion') ** {'bang': 'loud', 'flame': 'big'}
+# adds new event `explosion` with attrs: {'bang': 'loud', 'flame': 'big'}
 ```
 
 Inspired by [pipe](https://github.com/JulienPalard/Pipe), [q](https://github.com/zestyping/q), and the `rollup_field` support in [Honeycomb's beeline](https://docs.honeycomb.io/getting-data-in/python/beeline/).

@@ -35,7 +35,7 @@ from typing import Any, Callable, Dict, Mapping, Union
 
 import opentelemetry.trace
 
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 
 
 class OTelTerseEvent:

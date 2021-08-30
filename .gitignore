@@ -1,6 +1,6 @@
 .coverage
 .pytest_cache
 .venv/
-demo.py
+demo*
 dist/
 htmlcov/
